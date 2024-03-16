@@ -53,3 +53,10 @@ public enum AppEvent {
     }
 }
 ```
+
+## Support
+
+This software package is provided on an "as-is" basis. Community-based support is available in
+[discussions](https://github.com/appbiotic/appbiotic-macros-swift/discussions). Filed
+[issues](https://github.com/appbiotic/appbiotic-macros-swift/issues) may be renamed, split,
+deduplicated, or moved to a discussion, for organizational clarity purposes.

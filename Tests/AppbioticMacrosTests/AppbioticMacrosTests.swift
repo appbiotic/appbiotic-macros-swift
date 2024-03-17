@@ -18,29 +18,36 @@ import XCTest
 
 final class AppbioticMacrosTests: XCTestCase {
   func testNotificationNamesMacro() throws {
+
     #if canImport(AppbioticMacrosPlugin)
       assertMacroExpansion(
         """
-        @NotificationNames(prefix: "com.appbiotic.app.macros.")
-        public enum MyEvent {
-            case startedService
-            case stoppedService
+        @NotificationNames(domain: "com.appbiotic.app.macros")
+        public enum MyEvent: String, CaseIterable {
+          case startedService
+          case stoppedService
         }
         """,
         expandedSource: """
-          public enum MyEvent {
-              case startedService
-              case stoppedService
+          public enum MyEvent: String, CaseIterable {
+            case startedService
+            case stoppedService
+
+              public static let domain = "com.appbiotic.app.macros"
+
+              public init?(notificationName: Notification.Name) {
+                  if let domainRange = notificationName.rawValue.firstRange(of: "\\(MyEvent.domain)."),
+                      domainRange.lowerBound == notificationName.rawValue.startIndex
+                  {
+                      let eventName = notificationName.rawValue[domainRange.upperBound...]
+                      self.init(rawValue: String(eventName))
+                  } else {
+                      return nil
+                  }
+              }
 
               public var notificationName: Notification.Name {
-                  get {
-                      switch self {
-                      case .startedService:
-                          return Notification.Name("com.appbiotic.app.macros.startedService")
-                      case .stoppedService:
-                          return Notification.Name("com.appbiotic.app.macros.stoppedService")
-                      }
-                  }
+                  Notification.Name("\\(MyEvent.domain).\\(self.rawValue)")
               }
           }
           """,

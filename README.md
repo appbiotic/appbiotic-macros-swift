@@ -1,4 +1,4 @@
-# AppbioitcMacros
+# AppbioticMacros
 
 A collection of Swift macros to reduce boilerplate for building applications.
 
@@ -7,7 +7,7 @@ A collection of Swift macros to reduce boilerplate for building applications.
 Package dependency:
 
 ```swift
-.package(url: "https://github.com/appbiotic/appbiotic-macros-swift", from: "0.1.0")
+.package(url: "https://github.com/appbiotic/appbiotic-macros-swift", exact: "0.2.0")
 ```
 
 Target dependency:

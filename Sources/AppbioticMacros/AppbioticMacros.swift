@@ -14,5 +14,5 @@ public macro stringify<T>(_ value: T) -> (T, String) =
   #externalMacro(module: "AppbioticMacrosPlugin", type: "StringifyMacro")
 
 @attached(member, names: arbitrary)
-public macro NotificationNames(prefix: String) =
+public macro NotificationNames(domain: String) =
   #externalMacro(module: "AppbioticMacrosPlugin", type: "NotificationNamesMacro")

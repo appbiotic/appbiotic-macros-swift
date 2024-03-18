@@ -1,7 +1,9 @@
 //  Copyright (c) 2024 Appbiotic Inc.
 //  Licensed under Apache License v2.0 with Runtime Library Exception
 
+import SwiftCompilerPlugin
 import SwiftSyntax
+import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
 
 public enum NotificationNamesMacroError: Error {
@@ -18,7 +20,8 @@ public struct NotificationNamesMacro: MemberMacro {
       throw NotificationNamesMacroError.notAnEnum
     }
 
-    var prefix: String? = nil
+    let enumName = enumDecl.name.text
+    var domain: String? = nil
     guard let labeledExprList = node.arguments?.as(LabeledExprListSyntax.self) else {
       throw NotificationNamesMacroError.invalidArguments
     }
@@ -28,69 +31,50 @@ public struct NotificationNamesMacro: MemberMacro {
         throw NotificationNamesMacroError.invalidArguments
       }
       switch label.text {
-      case "prefix":
+      case "domain":
         guard let stringExpr = labeledExpr.expression.as(StringLiteralExprSyntax.self),
           let value = stringExpr.representedLiteralValue
         else {
           throw NotificationNamesMacroError.invalidArguments
         }
-        prefix = value
+        domain = value
       default:
         throw NotificationNamesMacroError.invalidArguments
       }
     }
 
-    let cases = enumDecl.memberBlock.members
-      .compactMap { $0.decl.as(EnumCaseDeclSyntax.self) }
-      .compactMap { $0.elements.first?.name.text }
-    let variable = VariableDeclSyntax(
-      modifiers: DeclModifierListSyntax {
-        DeclModifierSyntax(name: TokenSyntax.keyword(.public))
-      },
-      bindingSpecifier: .keyword(.var),
-      bindings: PatternBindingListSyntax([
-        PatternBindingSyntax(
-          pattern: IdentifierPatternSyntax(identifier: .identifier("notificationName")),
-          typeAnnotation: TypeAnnotationSyntax(
-            colon: .colonToken(), type: IdentifierTypeSyntax(name: .identifier("Notification.Name"))
-          ),
-          accessorBlock: AccessorBlockSyntax(
-            accessors: AccessorBlockSyntax.Accessors(
-              AccessorDeclListSyntax(
-                [
-                  AccessorDeclSyntax(
-                    accessorSpecifier: .keyword(.get),
-                    body: CodeBlockSyntax(
-                      leftBrace: .leftBraceToken(leadingTrivia: .space),
-                      statements: CodeBlockItemListSyntax(
-                        [
-                          CodeBlockItemSyntax(
-                            item: .expr(
-                              ExprSyntax(
-                                SwitchExprSyntax(
-                                  subject: DeclReferenceExprSyntax(baseName: .keyword(.`self`)),
-                                  cases: SwitchCaseListSyntax {
-                                    for caseName in cases {
-                                      SwitchCaseSyntax(
-                                        "case .\(raw: caseName): return Notification.Name(\"\(raw: prefix ?? "")\(raw: caseName)\")"
-                                      )
-                                    }
-                                  }
-                                ))
-                            ))
-                        ]
-                      ),
-                      rightBrace: .rightBraceToken(leadingTrivia: .newline)
-                    ))
-                ]
-              )
-            )
-          )
-        )
-      ])
-    )
+    guard let domain = domain else {
+      throw NotificationNamesMacroError.invalidArguments
+    }
+
     return [
-      DeclSyntax(variable)
+      DeclSyntax(
+        try VariableDeclSyntax(
+          SyntaxNodeString(stringLiteral: "public static let domain = \"\(domain)\""))),
+      DeclSyntax(
+        try InitializerDeclSyntax(
+          SyntaxNodeString(stringLiteral: "public init?(notificationName: Notification.Name)")
+        ) {
+          ExprSyntax(
+            """
+            if let domainRange = notificationName.rawValue.firstRange(of: "\\(\(raw: enumName).domain)."),
+                domainRange.lowerBound == notificationName.rawValue.startIndex
+            {
+                let eventName = notificationName.rawValue[domainRange.upperBound...]
+                self.init(rawValue: String(eventName))
+            } else {
+                return nil
+            }
+            """)
+        }),
+      DeclSyntax(
+        try VariableDeclSyntax(
+          SyntaxNodeString(
+            stringLiteral: """
+              public var notificationName: Notification.Name {
+                  Notification.Name("\\(\(enumName).domain).\\(self.rawValue)")
+              }
+              """))),
     ]
   }
 }

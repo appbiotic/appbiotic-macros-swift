@@ -4,7 +4,7 @@ import CompilerPluginSupport
 import PackageDescription
 
 let package = Package(
-  name: "AppbioticMacros",
+  name: "appbiotic-macros-swift",
   platforms: [.macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6), .macCatalyst(.v13)],
   products: [
     .library(
@@ -34,6 +34,12 @@ let package = Package(
       dependencies: [
         "AppbioticMacrosPlugin",
         .product(name: "SwiftSyntaxMacrosTestSupport", package: "swift-syntax"),
+      ]
+    ),
+    .testTarget(
+      name: "AppbioticMacrosUsageTests",
+      dependencies: [
+        "AppbioticMacros"
       ]
     ),
   ]
